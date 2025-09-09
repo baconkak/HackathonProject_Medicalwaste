@@ -13,7 +13,7 @@
     <button class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
   </form>
 
-  <div class="grid md:grid-cols-2 gap-4">
+  <div class="grid md:grid-cols-3 gap-4">
     <div>
       <h3 class="font-semibold">Wastes</h3>
       <table class="w-full text-sm mt-2">
@@ -41,6 +41,20 @@
               <td>{{ t.by or '-' }}</td>
               <td>{{ t.plate or '-' }}</td>
               <td>{{ t.status or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 class="font-semibold">Hospitals</h3>
+      <table class="w-full text-sm mt-2">
+        <thead><tr class="text-left border-b"><th>ID</th><th>Name</th></tr></thead>
+        <tbody>
+          {% for h in results.hospitals %}
+            <tr class="border-b hover:bg-slate-50">
+              <td>{{ h.hospital_id }}</td>
+              <td>{{ h.name }}</td>
             </tr>
           {% endfor %}
         </tbody>

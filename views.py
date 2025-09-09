@@ -46,21 +46,58 @@ def search():
     if not q:
         return render_template("search.html", q=q, results=results)
 
+    # Sets to hold unique IDs to query at the end
+    waste_ids_to_show = set()
+    transport_ids_to_show = set()
+    hospital_ids_to_show = set()
+
+    # --- Search based on query type ---
     if stype in ("all", "waste"):
         ws = WastePackage.query.filter(WastePackage.waste_id.like(f"%{q}%")).all()
+        for w in ws:
+            waste_ids_to_show.add(w.waste_id)
+            hospital_ids_to_show.add(w.hospital_id)
+
+    if stype in ("all", "transport"):
+        ts = Transport.query.filter(Transport.transport_id.like(f"%{q}%")).all()
+        for t in ts:
+            transport_ids_to_show.add(t.transport_id)
+            # Find related hospitals
+            wastes_on_transport = (
+                db.session.query(WastePackage.hospital_id)
+                .join(WasteOnTransport, WasteOnTransport.waste_id == WastePackage.waste_id)
+                .filter(WasteOnTransport.transport_id == t.transport_id)
+                .distinct().all()
+            )
+            for hosp_id, in wastes_on_transport:
+                hospital_ids_to_show.add(hosp_id)
+
+    if stype in ("all", "hospital"):
+        hs = Hospital.query.filter(
+            (Hospital.hospital_id.like(f"%{q}%")) | (Hospital.name.like(f"%{q}%"))
+        ).all()
+        for h in hs:
+            hospital_ids_to_show.add(h.hospital_id)
+            # Find related wastes
+            wastes_in_hospital = WastePackage.query.filter_by(hospital_id=h.hospital_id).all()
+            for w in wastes_in_hospital:
+                waste_ids_to_show.add(w.waste_id)
+
+    # --- Build final results from the collected IDs ---
+    if waste_ids_to_show:
+        wastes = WastePackage.query.filter(WastePackage.waste_id.in_(list(waste_ids_to_show))).all()
         results["wastes"] = [
             {
                 "waste_id": w.waste_id,
                 "type": w.waste_type,
                 "weight": float(w.weight_kg),
-                "hospital_id": w.hospital_id,
-                "dept_id": w.dept_id,
                 "status": latest_status("waste", w.waste_id),
             }
-            for w in ws
+            for w in wastes
         ]
-    if stype in ("all", "transport"):
-        ts = Transport.query.filter(Transport.transport_id.like(f"%{q}%")).all()
+
+    if transport_ids_to_show:
+        transports = Transport.query.filter(Transport.transport_id.in_(list(transport_ids_to_show))).all()
         results["transports"] = [
             {
                 "transport_id": t.transport_id,
@@ -68,14 +105,13 @@ def search():
                 "plate": t.vehicle_plate,
                 "status": latest_status("transport", t.transport_id),
             }
-            for t in ts
+            for t in transports
         ]
-    if stype in ("all", "hospital"):
-        hs = Hospital.query.filter(
-            (Hospital.hospital_id.like(f"%{q}%")) | (Hospital.name.like(f"%{q}%"))
-        ).all()
+
+    if hospital_ids_to_show:
+        hospitals = Hospital.query.filter(Hospital.hospital_id.in_(list(hospital_ids_to_show))).all()
         results["hospitals"] = [
-            {"hospital_id": h.hospital_id, "name": h.name} for h in hs
+            {"hospital_id": h.hospital_id, "name": h.name} for h in hospitals
         ]
 
     return render_template("search.html", q=q, results=results)
@@ -226,6 +262,12 @@ def dashboard():
         .limit(20)
         .all()
     )
+    
+    hospital_name = None
+    if current_user.hospital_id:
+        hospital = Hospital.query.get(current_user.hospital_id)
+        if hospital:
+            hospital_name = hospital.name
 
     return render_template(
         "dashboard.html",
@@ -237,6 +279,7 @@ def dashboard():
         ts=ts,
         latest=latest,
         incidents=incidents,
+        hospital_name=hospital_name,
     )
 
 

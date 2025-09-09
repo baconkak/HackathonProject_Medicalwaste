@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 <div class="flex flex-wrap gap-3 items-end mb-4">
-  <h2 class="text-lg font-semibold">Dashboard</h2>
+  <h2 class="text-lg font-semibold">Dashboard {% if hospital_name %}- {{ hospital_name }}{% endif %}</h2>
   <form class="flex gap-2 ml-auto" method="get">
     <input
       type="date"
@@ -14,28 +14,28 @@
       value="{{ dt_to.date() }}"
       class="border rounded p-1"
     />
-    <button class="px-3 py-1 rounded bg-slate-800 text-white">Apply</button>
-    <a class="px-3 py-1 rounded bg-emerald-500 text-white" href="/export/excel"
+    <button class="btn btn-primary">Apply</button>
+    <a class="btn btn-primary" href="/export/excel"
       >Export Excel</a
     >
-    <a class="px-3 py-1 rounded bg-rose-600 text-white" href="/export/pdf"
+    <a class="btn btn-danger" href="/export/pdf"
       >Export PDF</a
     >
   </form>
 </div>
 
 <div class="grid md:grid-cols-4 gap-4">
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <div class="text-slate-600 text-sm">Total Bags</div>
     <div class="text-3xl font-bold">{{ total }}</div>
   </div>
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <div class="text-slate-600 text-sm">Completed %</div>
     <div class="text-3xl font-bold text-emerald-600">
       {{ percent_completed }}%
     </div>
   </div>
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <div class="text-slate-600 text-sm">By Type</div>
     <ul class="text-sm mt-1">
       {% for k,v in by_type.items() %}
@@ -43,7 +43,7 @@
       {% endfor %}
     </ul>
   </div>
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <div class="text-slate-600 text-sm">Incidents</div>
     <ul class="text-sm mt-1">
       {% for inc in incidents %}
@@ -60,19 +60,19 @@
 </div>
 
 <div class="grid md:grid-cols-2 gap-4 mt-4">
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <h3 class="font-semibold mb-2">Waste per day</h3>
     <canvas id="lineChart"></canvas>
   </div>
-  <div class="bg-white p-4 rounded-xl shadow">
+  <div class="card">
     <h3 class="font-semibold mb-2">Type distribution</h3>
     <canvas id="pieChart"></canvas>
   </div>
 </div>
 
-<div class="bg-white p-4 rounded-xl shadow mt-4">
+<div class="card mt-4">
   <h3 class="font-semibold">Latest</h3>
-  <table class="w-full text-sm mt-2">
+  <table class="table mt-2">
     <thead>
       <tr class="text-left border-b">
         <th>Time</th>

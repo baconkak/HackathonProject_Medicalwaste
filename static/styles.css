@@ -12,3 +12,70 @@
 .leaflet-container {
     border-radius: 0.75rem;
 }
+
+body {
+    background-color: var(--slate-100);
+    color: var(--slate-700);
+    font-family: sans-serif;
+}
+
+.card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--slate-100);
+}
+
+.table th {
+    font-weight: 600;
+}
+
+.table tbody tr:hover {
+    background-color: var(--teal-100);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--teal-600);
+}
+
+.btn-primary:hover {
+    background-color: #0A7D70;
+}
+
+.btn-danger {
+    background-color: var(--rose-600);
+}
+
+.btn-danger:hover {
+    background-color: #C51A3C;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
+}
