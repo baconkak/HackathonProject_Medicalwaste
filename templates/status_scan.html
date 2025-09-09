@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
+  <h2 class="text-lg font-semibold mb-4">Update Status</h2>
+  <form method="post" class="space-y-3">
+    <input name="code" placeholder="waste_id หรือ transport_id" class="w-full border p-3 rounded text-lg">
+    <div class="flex gap-2 items-center">
+      <select name="action" class="border p-2 rounded">
+        <option value="">ติ๊ด (ไปสถานะถัดไปอัตโนมัติ)</option>
+        <option>Collected</option>
+        <option>On Truck</option>
+        <option>In Transit</option>
+        <option>Arrived Disposal Site</option>
+        <option>In Disposal</option>
+        <option>Completed</option>
+      </select>
+      <button class="bg-teal-600 text-white px-4 py-2 rounded">Update</button>
+    </div>
+  </form>
+  {% if message %}<div class="mt-4 p-3 rounded bg-slate-100">{{ message }}</div>{% endif %}
+
+  <div class="mt-4 text-sm text-slate-600">
+    <b>Flow</b>: waste – Collected → On Truck → In Transit → Arrived Disposal Site → In Disposal → Completed
+  </div>
+</div>
+{% endblock %}

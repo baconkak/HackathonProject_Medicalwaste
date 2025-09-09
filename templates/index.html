@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="grid md:grid-cols-2 gap-4">
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-lg font-semibold">Welcome</h2>
+    <p>Role: <span class="font-mono bg-slate-100 px-2 py-1 rounded">{{ current_user.role }}</span></p>
+    {% if current_user.role == 'staff' %}
+      <p class="text-sm text-slate-600">Permissions: Update Status + Search (เฉพาะ hospital/department ของตน)</p>
+    {% elif current_user.role == 'transport' %}
+      <p class="text-sm text-slate-600">Permissions: Update Status (เฉพาะ transport ของตน)</p>
+    {% else %}
+      <p class="text-sm text-slate-600">Permissions: Dashboard + Search (read-only)</p>
+    {% endif %}
+  </div>
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h2 class="text-lg font-semibold">Quick Actions</h2>
+    <div class="flex gap-3 mt-2">
+      <a class="px-3 py-2 rounded bg-teal-600 text-white" href="/dashboard">Dashboard</a>
+      <a class="px-3 py-2 rounded bg-slate-800 text-white" href="/search">Search</a>
+      <a class="px-3 py-2 rounded bg-amber-500 text-white" href="/upload/csv">Upload CSV</a>
+      <a class="px-3 py-2 rounded bg-rose-600 text-white" href="/status/scan">Update Status</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

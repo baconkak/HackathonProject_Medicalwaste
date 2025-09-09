@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow">
+  <h2 class="text-lg font-semibold mb-3">Search</h2>
+  <form method="get" class="flex gap-2 mb-4">
+    <input name="q" value="{{ q }}" placeholder="waste_id / transport_id / hospital name" class="flex-1 border rounded p-2">
+    <select name="type" class="border rounded p-2">
+      <option value="all">All</option>
+      <option value="waste" {% if request.args.get('type')=='waste' %}selected{% endif %}>Waste</option>
+      <option value="transport" {% if request.args.get('type')=='transport' %}selected{% endif %}>Transport</option>
+      <option value="hospital" {% if request.args.get('type')=='hospital' %}selected{% endif %}>Hospital</option>
+    </select>
+    <button class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
+  </form>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <h3 class="font-semibold">Wastes</h3>
+      <table class="w-full text-sm mt-2">
+        <thead><tr class="text-left border-b"><th>ID</th><th>Type</th><th>Weight</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for w in results.wastes %}
+            <tr class="border-b hover:bg-slate-50">
+              <td><a class="text-teal-700 underline" href="/waste/{{ w.waste_id }}">{{ w.waste_id }}</a></td>
+              <td>{{ w.type }}</td>
+              <td>{{ '%.2f'|format(w.weight) }}</td>
+              <td>{{ w.status or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 class="font-semibold">Transports</h3>
+      <table class="w-full text-sm mt-2">
+        <thead><tr class="text-left border-b"><th>ID</th><th>By</th><th>Plate</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for t in results.transports %}
+            <tr class="border-b hover:bg-slate-50">
+              <td><a class="text-teal-700 underline" href="/transport/{{ t.transport_id }}">{{ t.transport_id }}</a></td>
+              <td>{{ t.by or '-' }}</td>
+              <td>{{ t.plate or '-' }}</td>
+              <td>{{ t.status or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

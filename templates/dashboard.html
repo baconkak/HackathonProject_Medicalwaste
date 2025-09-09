@@ -1,0 +1,115 @@
+{% extends 'base.html' %} {% block content %}
+<div class="flex flex-wrap gap-3 items-end mb-4">
+  <h2 class="text-lg font-semibold">Dashboard</h2>
+  <form class="flex gap-2 ml-auto" method="get">
+    <input
+      type="date"
+      name="from"
+      value="{{ dt_from.date() }}"
+      class="border rounded p-1"
+    />
+    <input
+      type="date"
+      name="to"
+      value="{{ dt_to.date() }}"
+      class="border rounded p-1"
+    />
+    <button class="px-3 py-1 rounded bg-slate-800 text-white">Apply</button>
+    <a class="px-3 py-1 rounded bg-emerald-500 text-white" href="/export/excel"
+      >Export Excel</a
+    >
+    <a class="px-3 py-1 rounded bg-rose-600 text-white" href="/export/pdf"
+      >Export PDF</a
+    >
+  </form>
+</div>
+
+<div class="grid md:grid-cols-4 gap-4">
+  <div class="bg-white p-4 rounded-xl shadow">
+    <div class="text-slate-600 text-sm">Total Bags</div>
+    <div class="text-3xl font-bold">{{ total }}</div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow">
+    <div class="text-slate-600 text-sm">Completed %</div>
+    <div class="text-3xl font-bold text-emerald-600">
+      {{ percent_completed }}%
+    </div>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow">
+    <div class="text-slate-600 text-sm">By Type</div>
+    <ul class="text-sm mt-1">
+      {% for k,v in by_type.items() %}
+      <li>{{ k }}: <b>{{ v }}</b></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow">
+    <div class="text-slate-600 text-sm">Incidents</div>
+    <ul class="text-sm mt-1">
+      {% for inc in incidents %}
+      <li
+        class="{{ 'text-rose-600' if inc.type=='route_deviation' else 'text-amber-600' }}"
+      >
+        {{ inc.type }} – {{ inc.ref_id }} ({{ inc.detail }})
+      </li>
+      {% else %}
+      <li>No incidents</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-4 mt-4">
+  <div class="bg-white p-4 rounded-xl shadow">
+    <h3 class="font-semibold mb-2">Waste per day</h3>
+    <canvas id="lineChart"></canvas>
+  </div>
+  <div class="bg-white p-4 rounded-xl shadow">
+    <h3 class="font-semibold mb-2">Type distribution</h3>
+    <canvas id="pieChart"></canvas>
+  </div>
+</div>
+
+<div class="bg-white p-4 rounded-xl shadow mt-4">
+  <h3 class="font-semibold">Latest</h3>
+  <table class="w-full text-sm mt-2">
+    <thead>
+      <tr class="text-left border-b">
+        <th>Time</th>
+        <th>Waste</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in latest %}
+      <tr class="border-b">
+        <td>{{ e.at|fmt_dt }}</td>
+        <td>
+          <a class="text-teal-700 underline" href="/waste/{{ e.ref_id }}"
+            >{{ e.ref_id }}</a
+          >
+        </td>
+        <td>{{ e.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  const ts = {{ ts|tojson }};
+  new Chart(document.getElementById('lineChart'), {
+    type: 'line', data: {
+      labels: ts.map(x => x.day),
+      datasets: [{ label: 'Bags', data: ts.map(x => x.count) }]
+    }
+  });
+  const byType = {{ by_type|tojson }};
+  new Chart(document.getElementById('pieChart'), {
+    type: 'pie', data: {
+      labels: Object.keys(byType),
+      datasets: [{ data: Object.values(byType) }]
+    }
+  });
+</script>
+{% endblock %}

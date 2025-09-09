@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded-xl shadow">
+  <h2 class="text-lg font-semibold mb-4">Upload CSV</h2>
+  <form hx-post="/upload/csv" hx-encoding="multipart/form-data" hx-target="#result" hx-swap="innerHTML" class="space-y-3">
+    <input type="file" name="file" accept=".csv" class="block">
+    <button class="bg-teal-600 text-white px-4 py-2 rounded">Upload</button>
+  </form>
+  <div id="result" class="mt-4 text-sm"></div>
+  <details class="mt-6"><summary class="cursor-pointer">CSV headers & rules</summary>
+    <pre class="bg-slate-100 p-3 rounded">waste_id,waste_type,weight_kg,hospital_id,department,collected_time,transport_id,transport_by,transport_start,transport_end,disposal_name,disposal_method,disposal_time</pre>
+  </details>
+</div>
+<script>
+  document.addEventListener('htmx:afterRequest', (e) => {
+    if (e.detail.xhr && e.detail.xhr.response) {
+      const res = e.detail.xhr.response;
+      try {
+        const obj = typeof res === 'string' ? JSON.parse(res) : res;
+        const box = document.getElementById('result');
+        if (obj.ok) box.innerHTML = `<div class='p-3 rounded bg-emerald-100 text-emerald-800'>${obj.message}</div>`;
+        else box.innerHTML = `<div class='p-3 rounded bg-rose-100 text-rose-800'>${obj.errors.join('<br>')}</div>`;
+      } catch {}
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %} {% block content %}
+<div class="bg-white p-6 rounded-xl shadow">
+  <h2 class="text-lg font-semibold">Transport {{ t.transport_id }}</h2>
+  <p class="text-sm text-slate-600">
+    By: {{ t.transport_by or '-' }} | Plate: {{ t.vehicle_plate or '-' }}
+  </p>
+  <div id="map" class="h-80 mt-4 rounded"></div>
+  <script>
+    const map = L.map('map').setView([13.756, 100.5], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    // Planned route (gray)
+    const route = {{ t.planned_route_geojson or 'null' | safe }};
+    if (route && route.coordinates) {
+      const latlngs = route.coordinates.map(c => [c[1], c[0]]);
+      L.polyline(latlngs, {weight:4, opacity:0.9, color:'#334155'}).addTo(map);
+      map.fitBounds(latlngs);
+    }
+    // GPS live (teal)
+    const gps = [
+      {% for p in gps %}[{{ p.lat }}, {{ p.lng }}],{% endfor %}
+    ];
+    if (gps.length) L.polyline(gps, {weight:5, opacity:0.9, color:'#0D9488'}).addTo(map);
+  </script>
+
+  <h3 class="mt-6 font-semibold">Wastes on this transport</h3>
+  <ul class="text-sm mt-2 list-disc ml-5">
+    {% for w in wastes %}
+    <li>
+      <a class="text-teal-700 underline" href="/waste/{{ w.waste_id }}"
+        >{{ w.waste_id }}</a
+      >
+      ({{ w.waste_type }})
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h3 class="mt-6 font-semibold">Status History</h3>
+  <ul class="text-sm mt-2 space-y-1">
+    {% for e in events %}
+    <li>• {{ e.at|fmt_dt }} – {{ e.status }} (by user {{ e.by_user }})</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

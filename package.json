@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "@prettier/plugin-python": "^0.0.0-development",
+    "prettier": "^3.6.2"
+  }
+}
