@@ -48,6 +48,7 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" id="select-all-wastes"></th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waste ID</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
@@ -57,6 +58,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for item in wastes %}
                 <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><input type="checkbox" class="waste-checkbox" value="{{ item.waste.waste_id }}"></td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><a href="{{ url_for('views.waste_detail', waste_id=item.waste.waste_id) }}" class="text-teal-600 hover:underline">{{ item.waste.waste_id }}</a></td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.waste.waste_type }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ '%.2f'|format(item.waste.weight_kg) }} kg</td>
@@ -66,6 +68,95 @@
             </tbody>
         </table>
     </div>
+
+    <div class="mt-4 flex items-center gap-2">
+        <button id="bulk-advance-btn" class="btn btn-primary">Advance Selected to Next Stage</button>
+        <select id="bulk-status-select" class="border p-2 rounded">
+            <option value="">Set Selected to...</option>
+            <option>Collected</option>
+            <option>In Transit</option>
+            <option>Arrived Disposal Site</option>
+            <option>In Disposal</option>
+            <option>Completed</option>
+        </select>
+        <button id="bulk-set-status-btn" class="btn btn-primary">Set Status</button>
+    </div>
 </div>
 {% endif %}
+
+<script>
+    const selectAllCheckbox = document.getElementById('select-all-wastes');
+    const wasteCheckboxes = document.querySelectorAll('.waste-checkbox');
+    const bulkAdvanceBtn = document.getElementById('bulk-advance-btn');
+    const bulkStatusSelect = document.getElementById('bulk-status-select');
+    const bulkSetStatusBtn = document.getElementById('bulk-set-status-btn');
+
+    selectAllCheckbox.addEventListener('change', function() {
+        wasteCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+    });
+
+    function getSelectedWasteIds() {
+        const selectedIds = [];
+        wasteCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                selectedIds.push(checkbox.value);
+            }
+        });
+        return selectedIds;
+    }
+
+    async function performBulkAction(actionType, targetStatus = null) {
+        const selectedIds = getSelectedWasteIds();
+        if (selectedIds.length === 0) {
+            alert('Please select at least one waste package.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to ${actionType === 'advance' ? 'advance' : 'set status to ' + targetStatus} ${selectedIds.length} waste package(s)?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/status/bulk_update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    waste_ids: selectedIds,
+                    action: actionType,
+                    target_status: targetStatus
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message);
+                // Optionally refresh the page or update specific rows
+                location.reload(); 
+            } else {
+                alert(`Error: ${data.message || 'An unknown error occurred.'}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to connect to the server.');
+        }
+    }
+
+    bulkAdvanceBtn.addEventListener('click', () => {
+        performBulkAction('advance');
+    });
+
+    bulkSetStatusBtn.addEventListener('click', () => {
+        const targetStatus = bulkStatusSelect.value;
+        if (!targetStatus) {
+            alert('Please select a target status.');
+            return;
+        }
+        performBulkAction('set_status', targetStatus);
+    });
+</script>
 {% endblock %}

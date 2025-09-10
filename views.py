@@ -223,7 +223,9 @@ def dashboard():
     dt_to = datetime.fromisoformat(to_str) if to_str else now
 
     wastes = WastePackage.query.filter(
-        (WastePackage.collected_time == None) | (WastePackage.collected_time >= dt_from)
+        WastePackage.collected_time.isnot(None),
+        WastePackage.collected_time >= dt_from,
+        WastePackage.collected_time <= dt_to
     ).all()
 
     # KPIs
@@ -492,3 +494,43 @@ def export_pdf():
         as_attachment=True,
         download_name="medwaste_report.pdf",
     )
+
+
+@bp.route("/status/bulk_update", methods=["POST"])
+@login_required
+@require_roles("manager", "staff", "transport")
+def bulk_update_status():
+    data = request.get_json()
+    waste_ids = data.get("waste_ids", [])
+    action = data.get("action")
+    target_status = data.get("target_status")
+
+    if not waste_ids:
+        return jsonify({"message": "No waste packages selected.", "status": "error"}), 400
+
+    updated_count = 0
+    failed_updates = {}
+
+    for waste_id in waste_ids:
+        try:
+            if action == "advance":
+                advance_waste(waste_id, current_user.id)
+            elif action == "set_status":
+                if not target_status:
+                    failed_updates[waste_id] = "Target status not provided."
+                    continue
+                advance_waste(waste_id, current_user.id, to_status=target_status)
+            updated_count += 1
+        except FlowError as e:
+            failed_updates[waste_id] = str(e)
+        except Exception as e:
+            failed_updates[waste_id] = f"An unexpected error occurred: {str(e)}"
+
+    db.session.commit()
+
+    if updated_count == len(waste_ids):
+        return jsonify({"message": f"Successfully updated {updated_count} waste package(s).", "status": "success"})
+    elif updated_count > 0:
+        return jsonify({"message": f"Updated {updated_count} waste package(s). Failed to update {len(failed_updates)} waste package(s).", "failed": failed_updates, "status": "partial_success"})
+    else:
+        return jsonify({"message": f"Failed to update any waste package. Errors: {failed_updates}", "failed": failed_updates, "status": "error"}), 500
