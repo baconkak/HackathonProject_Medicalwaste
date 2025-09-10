@@ -1,7 +1,8 @@
 import csv
 from io import StringIO
 from datetime import datetime
-from flask import Blueprint, request, jsonify, render_template, flash
+from flask import Blueprint, request, jsonify, render_template, flash, redirect, url_for
+from flask_login import login_required, current_user
 from sqlalchemy.exc import IntegrityError
 from models import (
     db,
@@ -161,9 +162,11 @@ def validate_and_collect(rows):
 
 
 @bp.route("/upload/csv", methods=["GET", "POST"])
+@login_required
 def upload_csv():
     if request.method == "GET":
-        return render_template("upload.html")
+        departments = Department.query.filter_by(hospital_id=current_user.hospital_id).all()
+        return render_template("upload.html", departments=departments, waste_types=WASTE_TYPES)
 
     file = request.files.get("file")
     if not file:
@@ -241,3 +244,56 @@ def upload_csv():
         return jsonify({"ok": False, "errors": ["DB error: " + str(e)]}), 400
 
     return jsonify({"ok": True, "message": f"อัปโหลดข้อมูลสำเร็จ ({created} records)"})
+
+
+@bp.route("/waste/add", methods=["POST"])
+@login_required
+def add_waste():
+    weight = request.form.get("weight")
+    dept_id = request.form.get("department_id")
+    waste_type = request.form.get("waste_type")
+
+    if not weight or not dept_id or not waste_type:
+        flash("Weight, department, and waste type are required.", "error")
+        return redirect(url_for("upload.upload_csv"))
+
+    if waste_type not in WASTE_TYPES:
+        flash("Invalid waste type.", "error")
+        return redirect(url_for("upload.upload_csv"))
+
+    try:
+        weight_kg = float(weight)
+    except ValueError:
+        flash("Invalid weight.", "error")
+        return redirect(url_for("upload.upload_csv"))
+
+    # Generate a unique waste_id
+    waste_id = f"W-{current_user.hospital_id}-{int(datetime.utcnow().timestamp())}"
+
+    new_waste = WastePackage(
+        waste_id=waste_id,
+        waste_type=waste_type,
+        weight_kg=weight_kg,
+        hospital_id=current_user.hospital_id,
+        dept_id=dept_id,
+        collected_time=datetime.utcnow(),
+    )
+    db.session.add(new_waste)
+
+    # Add a status event
+    status_event = StatusEvent(
+        ref_type="waste",
+        ref_id=waste_id,
+        status="Collected",
+        by_user=current_user.id
+    )
+    db.session.add(status_event)
+
+    try:
+        db.session.commit()
+        flash(f"Waste package {waste_id} added successfully.", "success")
+    except IntegrityError as e:
+        db.session.rollback()
+        flash(f"Error adding waste package: {e}", "error")
+
+    return redirect(url_for("upload.upload_csv"))
