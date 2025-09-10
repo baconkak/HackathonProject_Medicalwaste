@@ -103,6 +103,8 @@ def validate_and_collect(rows):
             wval = float(weight)
             if wval <= 0:
                 errors.append(f"แถว {line}: weight_kg ≤ 0")
+            if wval > 20:
+                errors.append(f"แถว {line}: weight_kg > 20")
         except Exception:
             errors.append(f"แถว {line}: weight_kg ไม่ใช่ตัวเลขถูกต้อง")
 
@@ -111,9 +113,12 @@ def validate_and_collect(rows):
 
         dept_id = dept_map.get((hosp, dept_name.lower()))
         if not dept_id:
-            errors.append(
-                f"แถว {line}: department '{dept_name}' ไม่ตรงกับ hospital_id '{hosp}'"
-            )
+            # Create new department
+            new_dept_id = f"D-{hosp}-{dept_name.lower().replace(' ', '')[:10]}"
+            new_dept = Department(dept_id=new_dept_id, hospital_id=hosp, name=dept_name)
+            db.session.add(new_dept)
+            dept_map[(hosp, dept_name.lower())] = new_dept_id
+            dept_id = new_dept_id
 
         # Datetimes
         try:
@@ -263,7 +268,13 @@ def add_waste():
 
     try:
         weight_kg = float(weight)
-    except ValueError:
+        if weight_kg <= 0:
+            flash("Weight must be a positive number.", "error")
+            return redirect(url_for("upload.upload_csv"))
+        if weight_kg > 20:
+            flash("Weight must not exceed 20 kg.", "error")
+            return redirect(url_for("upload.upload_csv"))
+    except (ValueError, TypeError):
         flash("Invalid weight.", "error")
         return redirect(url_for("upload.upload_csv"))
 

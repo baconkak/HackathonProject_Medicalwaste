@@ -6,6 +6,10 @@
     <p class="text-sm text-slate-600">Type: {{ w.waste_type }} | Weight: {{ '%.2f'|format(w.weight_kg) }} kg | Hospital: {{ w.hospital_id }} | Dept: {{ w.dept_id }}</p>
   </div>
 
+  <div id="gps-map" class="hidden">
+    <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=-0.1278%2C51.5074%2C-0.1277%2C51.5075&layer=mapnik" class="w-full h-64 object-cover rounded-md"></iframe>
+  </div>
+
   {% if trans %}
   <div class="border-t pt-4">
     <h3 class="font-semibold">Transport Details</h3>
@@ -31,9 +35,18 @@
     <h3 class="font-semibold">History</h3>
     <ul class="text-sm mt-2 space-y-1">
       {% for e in events %}
-        <li>• {{ e.at|fmt_dt }} – {{ e.status }} (by user {{ e.by_user }})</li>
+        <li>• {{ e.at|fmt_dt }} – {{ e.status }} (by user {{ e.user.username if e.user else e.by_user }})</li>
       {% endfor %}
     </ul>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const latestStatus = "{{ events[0].status if events else '' }}";
+    if (latestStatus === 'In Transit') {
+      document.getElementById('gps-map').classList.remove('hidden');
+    }
+  });
+</script>
 {% endblock %}
