@@ -170,6 +170,7 @@ class StatusEvent(db.Model):
     )
     at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     by_user = db.Column(db.Integer, db.ForeignKey("users.user_id"))
+    user = db.relationship("User")
     note = db.Column(db.String(255))
 
     # แก้ไขความสัมพันธ์ไปหา WastePackage และ Transport

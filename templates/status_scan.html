@@ -2,6 +2,22 @@
 {% block content %}
 <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
   <h2 class="text-lg font-semibold mb-4">Update Status</h2>
+
+  {% if waste_to_assign %}
+  <div class="mb-4">
+    <p>Assign transport for waste <b>{{ waste_to_assign.waste_id }}</b> (Status: Collected)</p>
+    <form method="post" class="mt-2 space-y-3">
+      <input type="hidden" name="waste_id" value="{{ waste_to_assign.waste_id }}">
+      <select name="transport_id" class="w-full border p-2 rounded">
+        <option value="">Select Transport</option>
+        {% for t in transports %}
+        <option value="{{ t.transport_id }}">{{ t.transport_id }} ({{ t.transport_by }})</option>
+        {% endfor %}
+      </select>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded">Assign and set to In Transit</button>
+    </form>
+  </div>
+  {% else %}
   <form method="post" class="space-y-3">
     <input name="code" placeholder="waste_id หรือ transport_id" class="w-full border p-3 rounded text-lg">
     <div class="flex gap-2 items-center">
@@ -16,10 +32,40 @@
       <button class="bg-teal-600 text-white px-4 py-2 rounded">Update</button>
     </div>
   </form>
+  {% endif %}
+
   {% if message %}<div class="mt-4 p-3 rounded bg-slate-100">{{ message }}</div>{% endif %}
 
   <div class="mt-4 text-sm text-slate-600">
     <b>Flow</b>: waste – Collected → In Transit → Arrived Disposal Site → In Disposal → Completed
   </div>
 </div>
+
+{% if wastes %}
+<div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow mt-6">
+    <h2 class="text-lg font-semibold mb-4">Waste in your hospital</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waste ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item in wastes %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><a href="{{ url_for('views.waste_detail', waste_id=item.waste.waste_id) }}" class="text-teal-600 hover:underline">{{ item.waste.waste_id }}</a></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.waste.waste_type }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ '%.2f'|format(item.waste.weight_kg) }} kg</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ item.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

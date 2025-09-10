@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, send_file
+from flask import Blueprint, render_template, request, jsonify, send_file, redirect, url_for, flash
 from flask_login import login_required, current_user
 from io import BytesIO
 from datetime import datetime, timedelta
@@ -336,6 +336,18 @@ def dashboard():
 def status_scan():
     msg = None
     if request.method == "POST":
+        # This is a multi-stage form. Stage 1: scan code. Stage 2: assign transport.
+        if 'transport_id' in request.form:
+            waste_id = request.form.get('waste_id')
+            transport_id = request.form.get('transport_id')
+            # Associate waste with transport
+            db.session.add(WasteOnTransport(transport_id=transport_id, waste_id=waste_id))
+            # Advance status
+            new_status = advance_waste(waste_id, current_user.id, to_status="In Transit")
+            db.session.commit()
+            flash(f"Waste {waste_id} assigned to transport {transport_id} and is now {new_status}", "success")
+            return redirect(url_for('views.waste_detail', waste_id=waste_id))
+
         code = (request.form.get("code") or "").strip()
         action = request.form.get("action")  # optional target status
         allow_skip = bool(action)
@@ -356,6 +368,13 @@ def status_scan():
                         ),
                         403,
                     )
+                
+                # If status is Collected, show transport selection
+                current_status = latest_status("waste", w.waste_id)
+                if current_status == "Collected":
+                    transports = Transport.query.all()
+                    return render_template("status_scan.html", waste_to_assign=w, transports=transports)
+
                 new_status = advance_waste(
                     w.waste_id, current_user.id, allow_skip=allow_skip, to_status=action
                 )
@@ -395,7 +414,16 @@ def status_scan():
             db.session.commit()
             return render_template("status_scan.html", message=f"Invalid: {e}"), 400
 
-    return render_template("status_scan.html", message=msg)
+    # GET request: show list of waste for the user's hospital
+    wastes_in_hospital = []
+    if current_user.hospital_id:
+        all_wastes = WastePackage.query.filter_by(hospital_id=current_user.hospital_id).all()
+        for w in all_wastes:
+            s = latest_status("waste", w.waste_id)
+            if s != "Completed":
+                wastes_in_hospital.append({"waste": w, "status": s})
+
+    return render_template("status_scan.html", message=msg, wastes=wastes_in_hospital)
 
 
 @bp.route("/export/excel")
