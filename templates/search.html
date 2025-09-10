@@ -17,51 +17,24 @@
 
   <!-- Desktop Table -->
   <div class="hidden md:block">
-    <table class="w-full text-sm mt-2 table-fixed">
+    <table class="w-full text-sm mt-2 table-auto">
       <thead>
         <tr class="text-left border-b">
-          <th class="w-1/5">Waste ID</th>
-          <th class="w-1/5">Type</th>
-          <th class="w-1/5">Weight (kg)</th>
-          <th class="w-1/5">Hospital</th>
-          <th class="w-1/5">Transport</th>
+          <th class="w-3/5">Waste ID</th>
+          <th class="w-2/5">Status</th>
         </tr>
       </thead>
       <tbody>
         {% for r in results %}
           <tr class="border-b hover:bg-slate-50">
-            <!-- Waste Data -->
-            <td class="truncate">
+            <td class="truncate py-2">
               <a class="text-teal-700 underline" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
-              <br>
-              <span class="text-slate-500">{{ r.waste.status or '-' }}</span>
             </td>
-            <td class="truncate">{{ r.waste.type }}</td>
-            <td class="truncate">{{ '%.2f'|format(r.waste.weight) }}</td>
-            
-            <!-- Hospital Data -->
-            <td class="truncate">
-              {% if r.hospital %}
-                {{ r.hospital.name }} ({{ r.hospital.id }})
-              {% else %}
-                -
-              {% endif %}
-            </td>
-
-            <!-- Transport Data -->
-            <td class="truncate">
-              {% if r.transport %}
-                <a class="text-teal-700 underline" href="/transport/{{ r.transport.id }}">{{ r.transport.id }}</a>
-                <br>
-                <span class="text-slate-500">{{ r.transport.plate or '-' }} | {{ r.transport.status or '-' }}</span>
-              {% else %}
-                -
-              {% endif %}
-            </td>
+            <td class="truncate py-2">{{ r.waste.status or '-' }}</td>
           </tr>
         {% else %}
           <tr>
-            <td colspan="5" class="text-center py-4 text-slate-500">No results found.</td>
+            <td colspan="2" class="text-center py-4 text-slate-500">No results found.</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -72,62 +45,13 @@
   <div class="block md:hidden mt-2 space-y-4">
     {% for r in results %}
       <div class="border rounded-lg p-4 space-y-2">
-        <!-- Waste -->
-        <div>
-          <div class="flex justify-between">
-            <span class="font-bold">Waste ID:</span>
-            <a class="text-teal-700 underline truncate" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-bold">Status:</span>
-            <span class="truncate">{{ r.waste.status or '-' }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-bold">Type:</span>
-            <span class="truncate">{{ r.waste.type }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-bold">Weight:</span>
-            <span class="truncate">{{ '%.2f'|format(r.waste.weight) }} kg</span>
-          </div>
-        </div>
-        
-        <hr>
-
-        <!-- Hospital -->
         <div class="flex justify-between">
-          <span class="font-bold">Hospital:</span>
-          <span class="truncate">
-            {% if r.hospital %}
-              {{ r.hospital.name }} ({{ r.hospital.id }})
-            {% else %}
-              -
-            {% endif %}
-          </span>
+          <span class="font-bold">Waste ID:</span>
+          <a class="text-teal-700 underline truncate" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
         </div>
-
-        <hr>
-
-        <!-- Transport -->
-        <div>
-          <div class="flex justify-between">
-            <span class="font-bold">Transport:</span>
-            {% if r.transport %}
-              <a class="text-teal-700 underline truncate" href="/transport/{{ r.transport.id }}">{{ r.transport.id }}</a>
-            {% else %}
-              <span>-</span>
-            {% endif %}
-          </div>
-          {% if r.transport %}
-            <div class="flex justify-between">
-              <span class="font-bold">Plate:</span>
-              <span class="truncate">{{ r.transport.plate or '-' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="font-bold">Status:</span>
-              <span class="truncate">{{ r.transport.status or '-' }}</span>
-            </div>
-          {% endif %}
+        <div class="flex justify-between">
+          <span class="font-bold">Status:</span>
+          <span class="truncate">{{ r.waste.status or '-' }}</span>
         </div>
       </div>
     {% else %}

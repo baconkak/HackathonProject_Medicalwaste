@@ -3,7 +3,6 @@ from models import db, StatusEvent, WasteOnTransport, WastePackage
 
 WASTE_FLOW = [
     "Collected",
-    "On Truck",
     "In Transit",
     "Arrived Disposal Site",
     "In Disposal",
@@ -47,6 +46,17 @@ def advance_waste(waste_id, user_id, allow_skip=False, to_status=None):
     ev = StatusEvent(ref_type='waste', ref_id=waste_id, status=target, by_user=user_id, at=datetime.utcnow())
     db.session.add(ev)
     db.session.flush()
+
+    # If waste arrives at disposal, update transport status too
+    if target == "Arrived Disposal Site":
+        wot = WasteOnTransport.query.filter_by(waste_id=waste_id).first()
+        if wot:
+            try:
+                advance_transport(wot.transport_id, user_id, allow_skip=True, to_status="Arrived Disposal Site")
+            except FlowError:
+                # Transport status might already be ahead, which is fine.
+                pass
+
     return target
 
 

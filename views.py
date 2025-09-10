@@ -20,7 +20,13 @@ from models import (
     Incident,
 )
 from auth import require_roles
-from status_flow import latest_status, advance_waste, advance_transport, FlowError
+from status_flow import (
+    latest_status,
+    advance_waste,
+    advance_transport,
+    FlowError,
+    WASTE_FLOW,
+)
 from utils import (
     route_points_from_geojson,
     min_distance_to_polyline_m,
@@ -61,7 +67,9 @@ def search():
             (Hospital.hospital_id.like(f"%{q}%")) | (Hospital.name.like(f"%{q}%"))
         ).all()
         h_ids = {h.hospital_id for h in hs}
-        wastes_in_hospitals = WastePackage.query.filter(WastePackage.hospital_id.in_(list(h_ids))).all()
+        wastes_in_hospitals = WastePackage.query.filter(
+            WastePackage.hospital_id.in_(list(h_ids))
+        ).all()
         for w in wastes_in_hospitals:
             waste_ids_to_query.add(w.waste_id)
 
@@ -69,41 +77,68 @@ def search():
         # Find transports, then find their wastes
         ts = Transport.query.filter(Transport.transport_id.like(f"%{q}%")).all()
         t_ids = {t.transport_id for t in ts}
-        wastes_on_transports = WasteOnTransport.query.filter(WasteOnTransport.transport_id.in_(list(t_ids))).all()
+        wastes_on_transports = WasteOnTransport.query.filter(
+            WasteOnTransport.transport_id.in_(list(t_ids))
+        ).all()
         for wot in wastes_on_transports:
             waste_ids_to_query.add(wot.waste_id)
 
     # Now we have a set of all relevant waste IDs. Let's build the rows.
     if waste_ids_to_query:
-        wastes = WastePackage.query.filter(WastePackage.waste_id.in_(list(waste_ids_to_query))).all()
+        wastes = (
+            WastePackage.query.filter(WastePackage.waste_id.in_(list(waste_ids_to_query)))
+            .order_by(WastePackage.collected_time.desc())
+            .all()
+        )
         for w in wastes:
-            # For each waste, find its hospital and transport
             hospital = Hospital.query.get(w.hospital_id)
-            transport = (
-                db.session.query(Transport)
-                .join(WasteOnTransport, WasteOnTransport.transport_id == Transport.transport_id)
-                .filter(WasteOnTransport.waste_id == w.waste_id)
-                .first()
+            current_status = latest_status("waste", w.waste_id)
+            transport = None
+
+            # Only show transport if status is In Transit or Arrived Disposal Site
+            try:
+                if (
+                    current_status
+                    and WASTE_FLOW.index(current_status)
+                    >= WASTE_FLOW.index("In Transit")
+                    and WASTE_FLOW.index(current_status)
+                    < WASTE_FLOW.index("In Disposal")
+                ):
+                    transport = (
+                        db.session.query(Transport)
+                        .join(
+                            WasteOnTransport,
+                            WasteOnTransport.transport_id == Transport.transport_id,
+                        )
+                        .filter(WasteOnTransport.waste_id == w.waste_id)
+                        .first()
+                    )
+            except ValueError:  # Status not in WASTE_FLOW
+                pass
+
+            result_rows.append(
+                {
+                    "waste": {
+                        "id": w.waste_id,
+                        "type": w.waste_type,
+                        "weight": float(w.weight_kg),
+                        "status": current_status,
+                    },
+                    "hospital": {
+                        "id": hospital.hospital_id, "name": hospital.name
+                    }
+                    if hospital
+                    else None,
+                    "transport": {
+                        "id": transport.transport_id,
+                        "by": transport.transport_by,
+                        "plate": transport.vehicle_plate,
+                        "status": latest_status("transport", transport.transport_id),
+                    }
+                    if transport
+                    else None,
+                }
             )
-            
-            result_rows.append({
-                "waste": {
-                    "id": w.waste_id,
-                    "type": w.waste_type,
-                    "weight": float(w.weight_kg),
-                    "status": latest_status("waste", w.waste_id)
-                },
-                "hospital": {
-                    "id": hospital.hospital_id,
-                    "name": hospital.name
-                } if hospital else None,
-                "transport": {
-                    "id": transport.transport_id,
-                    "by": transport.transport_by,
-                    "plate": transport.vehicle_plate,
-                    "status": latest_status("transport", transport.transport_id)
-                } if transport else None
-            })
 
     return render_template("search.html", q=q, results=result_rows)
 
@@ -117,13 +152,34 @@ def waste_detail(waste_id):
         .order_by(StatusEvent.at.desc())
         .all()
     )
-    disp = Disposal.query.filter_by(waste_id=waste_id).first()
-    trans = (
-        db.session.query(Transport)
-        .join(WasteOnTransport, WasteOnTransport.transport_id == Transport.transport_id)
-        .filter(WasteOnTransport.waste_id == waste_id)
-        .first()
-    )
+
+    # Conditionally load transport and disposal info
+    trans, disp = None, None
+    current_status = latest_status("waste", waste_id)
+    try:
+        if (
+            current_status
+            and WASTE_FLOW.index(current_status) >= WASTE_FLOW.index("In Transit")
+            and WASTE_FLOW.index(current_status) < WASTE_FLOW.index("In Disposal")
+        ):
+            trans = (
+                db.session.query(Transport)
+                .join(
+                    WasteOnTransport,
+                    WasteOnTransport.transport_id == Transport.transport_id,
+                )
+                .filter(WasteOnTransport.waste_id == waste_id)
+                .first()
+            )
+        # Disposal info is separate, shown when waste is at or beyond disposal site
+        if current_status and WASTE_FLOW.index(current_status) >= WASTE_FLOW.index(
+            "Arrived Disposal Site"
+        ):
+            disp = Disposal.query.filter_by(waste_id=waste_id).first()
+
+    except ValueError:  # Status not in WASTE_FLOW
+        pass
+
     return render_template(
         "waste_detail.html", w=w, events=events, disp=disp, trans=trans
     )
@@ -242,7 +298,7 @@ def dashboard():
             {
                 "type": "overdue_collected",
                 "ref_id": wid,
-                "detail": ">24h without On Truck",
+                "detail": ">24h without In Transit",
             }
         )
 
@@ -288,15 +344,15 @@ def status_scan():
         t = Transport.query.get(code) if not w else None
         try:
             if w:
-                # Staff restriction: must match hospital+dept
-                if current_user.role == "staff" and not (
-                    current_user.hospital_id == w.hospital_id
-                    and current_user.dept_id == w.dept_id
+                # Staff restriction: must match hospital
+                if (
+                    current_user.role == "staff"
+                    and current_user.hospital_id != w.hospital_id
                 ):
                     return (
                         render_template(
                             "status_scan.html",
-                            message="Permission denied: different dept/hospital",
+                            message="Permission denied: different hospital",
                         ),
                         403,
                     )

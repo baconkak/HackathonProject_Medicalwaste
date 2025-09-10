@@ -160,7 +160,6 @@ class StatusEvent(db.Model):
     status = db.Column(
         Enum(
             "Collected",
-            "On Truck",
             "In Transit",
             "Arrived Disposal Site",
             "In Disposal",
