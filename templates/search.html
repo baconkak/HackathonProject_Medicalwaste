@@ -1,63 +1,111 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="bg-white p-6 rounded-xl shadow">
-  <h2 class="text-lg font-semibold mb-3">Search</h2>
-  <form method="get" class="flex gap-2 mb-4">
-    <input name="q" value="{{ q }}" placeholder="waste_id / transport_id / hospital name" class="flex-1 border rounded p-2">
-    <select name="type" class="border rounded p-2">
-      <option value="all">All</option>
+<div class="bg-white p-6 rounded-xl shadow-lg">
+  <div class="mb-4">
+    <h2 class="text-xl font-bold text-slate-800">Search Waste</h2>
+    <p class="text-sm text-slate-500">Find waste, transport, or hospital by ID.</p>
+  </div>
+
+  <form method="get" class="search-form-container">
+    <input name="q" value="{{ q }}" placeholder="Enter search term..." class="flex-1">
+    <select name="type">
+      <option value="all" {% if request.args.get('type')=='all' %}selected{% endif %}>All</option>
       <option value="waste" {% if request.args.get('type')=='waste' %}selected{% endif %}>Waste</option>
       <option value="transport" {% if request.args.get('type')=='transport' %}selected{% endif %}>Transport</option>
       <option value="hospital" {% if request.args.get('type')=='hospital' %}selected{% endif %}>Hospital</option>
     </select>
-    <button class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
+    <button class="btn btn-primary">🔍 Search</button>
   </form>
 
-  <h3 class="font-semibold">Search Results</h3>
+  <div class="mt-6">
+    <h3 class="font-semibold text-slate-700">Search Results</h3>
+    {% if results %}
+      <!-- Desktop Table -->
+      <div class="hidden md:block mt-2 border rounded-lg overflow-hidden">
+        <table class="w-full text-sm table-auto">
+          <thead class="bg-slate-50">
+            <tr class="text-left">
+              <th class="p-3 w-1/3">Waste ID</th>
+              <th class="p-3 w-2/3 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            {% for r in results %}
+              <tr class="hover:bg-slate-50">
+                <td class="p-3 truncate">
+                  <a class="text-teal-700 font-semibold hover:underline" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
+                </td>
+                <td class="p-3">
+                  {% if r.waste.status and r.waste.status in WASTE_FLOW %}
+                    <div class="status-progress">
+                      {% set current_status_index = WASTE_FLOW.index(r.waste.status) %}
+                      {% set progress_width = (current_status_index / (WASTE_FLOW|length - 1)) * 100 %}
+                      <div class="progress-active-line" style="width: {{ progress_width }}%;"></div>
+                      {% for status in WASTE_FLOW %}
+                        {% set loop_status_index = loop.index0 %}
+                        <div class="status-step {% if loop_status_index <= current_status_index %}active{% endif %}">
+                          <div class="status-dot"></div>
+                          {% if status == 'Arrived Disposal Site' %}
+                            <div class="status-label">Arrived Site</div>
+                          {% else %}
+                            <div class="status-label">{{ status }}</div>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span class="text-slate-500">{{ r.waste.status or '-' }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-  <!-- Desktop Table -->
-  <div class="hidden md:block">
-    <table class="w-full text-sm mt-2 table-auto">
-      <thead>
-        <tr class="text-left border-b">
-          <th class="w-3/5">Waste ID</th>
-          <th class="w-2/5">Status</th>
-        </tr>
-      </thead>
-      <tbody>
+      <!-- Mobile View: A list of cards -->
+      <div class="block md:hidden mt-2 space-y-3">
         {% for r in results %}
-          <tr class="border-b hover:bg-slate-50">
-            <td class="truncate py-2">
-              <a class="text-teal-700 underline" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
-            </td>
-            <td class="truncate py-2">{{ r.waste.status or '-' }}</td>
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="2" class="text-center py-4 text-slate-500">No results found.</td>
-          </tr>
+          <div class="border rounded-lg p-4">
+            <div class="flex justify-between items-center mb-3">
+              <span class="font-bold text-slate-600">Waste ID:</span>
+              <a class="text-teal-700 underline font-semibold" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
+            </div>
+            <div>
+              <span class="font-bold text-slate-600">Status:</span>
+              {% if r.waste.status and r.waste.status in WASTE_FLOW %}
+                <div class="status-progress mt-2">
+                  {% set current_status_index = WASTE_FLOW.index(r.waste.status) %}
+                  {% set progress_width = (current_status_index / (WASTE_FLOW|length - 1)) * 100 %}
+                  <div class="progress-active-line" style="width: {{ progress_width }}%;"></div>
+                  {% for status in WASTE_FLOW %}
+                    {% set loop_status_index = loop.index0 %}
+                    <div class="status-step {% if loop_status_index <= current_status_index %}active{% endif %}">
+                      <div class="status-dot"></div>
+                        {% if status == 'Arrived Disposal Site' %}
+                          <div class="status-label">Arrived Site</div>
+                        {% else %}
+                          <div class="status-label">{{ status }}</div>
+                        {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <span class="truncate text-slate-500">{{ r.waste.status or '-' }}</span>
+              {% endif %}
+            </div>
+          </div>
         {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Mobile View: A list of cards -->
-  <div class="block md:hidden mt-2 space-y-4">
-    {% for r in results %}
-      <div class="border rounded-lg p-4 space-y-2">
-        <div class="flex justify-between">
-          <span class="font-bold">Waste ID:</span>
-          <a class="text-teal-700 underline truncate" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
-        </div>
-        <div class="flex justify-between">
-          <span class="font-bold">Status:</span>
-          <span class="truncate">{{ r.waste.status or '-' }}</span>
-        </div>
       </div>
     {% else %}
-      <div class="text-center py-4 text-slate-500">No results found.</div>
-    {% endfor %}
+      {% if q %}
+        <div class="no-results">
+          <div class="no-results-icon">😕</div>
+          <p class="font-semibold">No Results Found</p>
+          <p class="text-sm">We couldn't find anything matching "{{ q }}".</p>
+        </div>
+      {% endif %}
+    {% endif %}
   </div>
-
 </div>
 {% endblock %}
