@@ -1,8 +1,9 @@
 {% extends 'base.html' %} {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="flex flex-wrap gap-3 items-end mb-4">
   <h2 class="text-lg font-semibold">Dashboard {% if hospital_name %}- {{ hospital_name }}{% endif %}</h2>
   <form class="flex gap-2 ml-auto" method="get">
-    <input
+    <input  
       type="date"
       name="from"
       value="{{ dt_from.date() }}"
@@ -31,15 +32,18 @@
   </div>
   <div class="card">
     <div class="text-slate-600 text-sm">Completed %</div>
-    <div class="text-3xl font-bold text-emerald-600">
+    <div class="text-3xl font-bold text-emerald-600 mb-2">
       {{ percent_completed }}%
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+      <div class="bg-emerald-600 h-2.5 rounded-full" style="width: {{ percent_completed }}%"></div>
     </div>
   </div>
   <div class="card">
     <div class="text-slate-600 text-sm">By Type</div>
     <ul class="text-sm mt-1">
       {% for k,v in by_type.items() %}
-      <li>{{ k }}: <b>{{ v }}</b></li>
+      <li class="flex justify-between"><span>{{ k }}:</span> <b>{{ v }}</b></li>
       {% endfor %}
     </ul>
   </div>

@@ -8,7 +8,6 @@
       <select name="action" class="border p-2 rounded">
         <option value="">ติ๊ด (ไปสถานะถัดไปอัตโนมัติ)</option>
         <option>Collected</option>
-        <option>On Truck</option>
         <option>In Transit</option>
         <option>Arrived Disposal Site</option>
         <option>In Disposal</option>
@@ -20,7 +19,7 @@
   {% if message %}<div class="mt-4 p-3 rounded bg-slate-100">{{ message }}</div>{% endif %}
 
   <div class="mt-4 text-sm text-slate-600">
-    <b>Flow</b>: waste – Collected → On Truck → In Transit → Arrived Disposal Site → In Disposal → Completed
+    <b>Flow</b>: waste – Collected → In Transit → Arrived Disposal Site → In Disposal → Completed
   </div>
 </div>
 {% endblock %}
