@@ -51,7 +51,7 @@ def search():
     result_rows = []
 
     if not q:
-        return render_template("search.html", q=q, results=[])
+        return render_template("search.html", q=q, results=[], WASTE_FLOW=WASTE_FLOW)
 
     # We need to find all relevant waste packages first.
     waste_ids_to_query = set()
@@ -140,7 +140,7 @@ def search():
                 }
             )
 
-    return render_template("search.html", q=q, results=result_rows)
+    return render_template("search.html", q=q, results=result_rows, WASTE_FLOW=WASTE_FLOW)
 
 
 @bp.route("/waste/<waste_id>")
