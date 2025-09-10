@@ -121,6 +121,12 @@ canvas {
     }
 }
 
+.incidents-list {
+    max-height: 150px; /* Adjust as needed */
+    overflow-y: auto;
+    padding-right: 10px; /* To prevent scrollbar from overlapping content */
+}
+
 .no-results {
     text-align: center;
     padding: 3rem 1rem;

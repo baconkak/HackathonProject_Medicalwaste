@@ -4,6 +4,20 @@ from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
 from reportlab.pdfgen import canvas
+from sqlalchemy import func
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+
+def get_time_category(hour):
+    if 6 <= hour < 12:
+        return "Morning"
+    elif 12 <= hour < 18:
+        return "Afternoon"
+    elif 18 <= hour < 24:
+        return "Evening"
+    else:
+        return "Night"
 
 from models import (
     db,
@@ -260,6 +274,62 @@ def dashboard():
         else []
     )
 
+    # Heatmap generation
+    heatmap_image_path = None
+    if wastes:
+        df_heatmap = pd.DataFrame([
+            {
+                "collected_time": w.collected_time,
+                "weight_kg": float(w.weight_kg)
+            }
+            for w in wastes if w.collected_time is not None
+        ])
+
+        if not df_heatmap.empty:
+            df_heatmap['hour'] = df_heatmap['collected_time'].dt.hour
+            df_heatmap['day_of_week'] = df_heatmap['collected_time'].dt.day_name()
+            df_heatmap['time_category'] = df_heatmap['hour'].apply(get_time_category)
+
+            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+            # Save the plot to a file
+            static_folder = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "static"
+            )
+            cumulative_waste_image_path = os.path.join(
+                static_folder, "cumulative_waste.png"
+            )
+            plt.savefig(cumulative_waste_image_path)
+
+            time_category_order = ['Night', 'Morning', 'Afternoon', 'Evening'] # Order for Y-axis
+
+            # Create a pivot table for the heatmap
+            heatmap_data_pivot = df_heatmap.pivot_table(
+                index='time_category',
+                columns='day_of_week',
+                values='weight_kg',
+                aggfunc='sum'
+            ).reindex(index=time_category_order, columns=day_order).fillna(0)
+
+            plt.figure(figsize=(10, 6))
+            sns.heatmap(heatmap_data_pivot, cmap='viridis', annot=True, fmt=".1f", linewidths=.5)
+            plt.title('Waste Quantity (kg) per Day and Time Category')
+            plt.xlabel('Day of Week')
+            plt.ylabel('Time Category')
+            plt.tight_layout()
+
+            # Define the path to save the heatmap image
+            static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+            if not os.path.exists(static_folder):
+                os.makedirs(static_folder)
+
+            heatmap_filename = 'waste_heatmap.png'
+            heatmap_full_path = os.path.join(static_folder, heatmap_filename)
+
+            plt.savefig(heatmap_full_path)
+            plt.close() # Close the plot to free up memory
+            heatmap_image_path = url_for('static', filename=heatmap_filename)
+
     # Incidents generation (on-the-fly)
     incidents = []
     buffer_m = default_buffer_m()
@@ -311,14 +381,14 @@ def dashboard():
         .limit(20)
         .all()
     )
-    
+
     hospital_name = None
     if current_user.hospital_id:
         hospital = Hospital.query.get(current_user.hospital_id)
         if hospital:
             hospital_name = hospital.name
 
-    return render_template(
+        return render_template(
         "dashboard.html",
         dt_from=dt_from,
         dt_to=dt_to,
@@ -329,6 +399,7 @@ def dashboard():
         latest=latest,
         incidents=incidents,
         hospital_name=hospital_name,
+        heatmap_image_path=heatmap_image_path,
     )
 
 

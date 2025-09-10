@@ -1,9 +1,12 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} 
+{% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="flex flex-wrap gap-3 items-end mb-4">
-  <h2 class="text-lg font-semibold">Dashboard {% if hospital_name %}- {{ hospital_name }}{% endif %}</h2>
+  <h2 class="text-lg font-semibold">
+    Dashboard {% if hospital_name %}- {{ hospital_name }}{% endif %}
+  </h2>
   <form class="flex gap-2 ml-auto" method="get">
-    <input  
+    <input
       type="date"
       name="from"
       value="{{ dt_from.date() }}"
@@ -16,12 +19,8 @@
       class="border rounded p-1"
     />
     <button class="btn btn-primary">Apply</button>
-    <a class="btn btn-primary" href="/export/excel"
-      >Export Excel</a
-    >
-    <a class="btn btn-danger" href="/export/pdf"
-      >Export PDF</a
-    >
+    <a class="btn btn-primary" href="/export/excel">Export Excel</a>
+    <a class="btn btn-danger" href="/export/pdf">Export PDF</a>
   </form>
 </div>
 
@@ -36,7 +35,10 @@
       {{ percent_completed }}%
     </div>
     <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-      <div class="bg-emerald-600 h-2.5 rounded-full" style="width: {{ percent_completed }}%"></div>
+      <div
+        class="bg-emerald-600 h-2.5 rounded-full"
+        style="width: {{ percent_completed }}%"
+      ></div>
     </div>
   </div>
   <div class="card">
@@ -47,9 +49,9 @@
       {% endfor %}
     </ul>
   </div>
-  <div class="card">
+  <div class="card incidents-card" id="incidents-card">
     <div class="text-slate-600 text-sm">Incidents</div>
-    <ul class="text-sm mt-1">
+    <ul class="text-sm mt-1 incidents-list">
       {% for inc in incidents %}
       <li
         class="{{ 'text-rose-600' if inc.type=='route_deviation' else 'text-amber-600' }}"
@@ -74,13 +76,32 @@
   </div>
 </div>
 
+<div class="card mt-4">
+  <h3 class="font-semibold mb-2">Waste Quantity Heatmap (kg)</h3>
+  {% if heatmap_image_path %}
+  <img src="{{ heatmap_image_path }}" alt="Waste Quantity Heatmap" class="w-full h-auto" />
+  {% else %}
+  <p>No heatmap data available.</p>
+  {% endif %}
+</div>
+
+<div class="card mt-4">
+  <h3 class="font-semibold mb-2">Cumulative Waste Graph</h3>
+  <img src="{{ cumulative_waste_image_path }}" alt="Cumulative Waste Graph" class="w-full h-auto" />
+</div>
+
 <div class="card mt-4" id="gpt-prediction-section">
   <h3 class="font-semibold mb-2">Ask OpenAI</h3>
   <div class="flex gap-2 mb-2">
     <button class="btn btn-primary" onclick="askGPT()">Analyze Data</button>
   </div>
-  <div id="gptResponse" class="p-2 border rounded bg-gray-50 min-h-[50px]"></div>
-  <div id="gptLoading" class="hidden text-sm text-slate-500 mt-2">Loading...</div>
+  <div
+    id="gptResponse"
+    class="p-2 border rounded bg-gray-50 min-h-[50px]"
+  ></div>
+  <div id="gptLoading" class="hidden text-sm text-slate-500 mt-2">
+    Loading...
+  </div>
   <div id="gptError" class="hidden text-sm text-rose-600 mt-2"></div>
 </div>
 
@@ -112,15 +133,19 @@
 
 <script>
   const ts = {{ ts|tojson }};
+  const byType = {{ by_type|tojson }};
+
   new Chart(document.getElementById('lineChart'), {
-    type: 'line', data: {
+    type: 'line',
+    data: {
       labels: ts.map(x => x.day),
       datasets: [{ label: 'Bags', data: ts.map(x => x.count) }]
     }
   });
-  const byType = {{ by_type|tojson }};
+
   new Chart(document.getElementById('pieChart'), {
-    type: 'pie', data: {
+    type: 'pie',
+    data: {
       labels: Object.keys(byType),
       datasets: [{ data: Object.values(byType) }]
     }
