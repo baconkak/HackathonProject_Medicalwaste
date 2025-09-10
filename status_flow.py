@@ -33,7 +33,6 @@ def latest_status(ref_type, ref_id):
          .order_by(StatusEvent.at.desc()).first())
     return e.status if e else None
 
-
 def advance_waste(waste_id, user_id, allow_skip=False, to_status=None):
     cur = latest_status('waste', waste_id)
     target = to_status if (allow_skip and to_status) else _next(WASTE_FLOW, cur)
@@ -65,11 +64,12 @@ def advance_transport(transport_id, user_id, allow_skip=False, to_status=None):
     db.session.add(ev)
     db.session.flush()
     # If batch: when transport starts moving to In Transit etc., cascade to all wastes in that transport
-    if target in ("On Truck","In Transit","Arrived Disposal Site","In Disposal","Completed"):
+    if target in TRANSPORT_FLOW:
         for wot in WasteOnTransport.query.filter_by(transport_id=transport_id).all():
             # Advance waste correspondingly (best-effort, ignore errors if already ahead)
             try:
-                advance_waste(wot.waste_id, user_id)
+                if target in WASTE_FLOW:
+                    advance_waste(wot.waste_id, user_id, allow_skip=True, to_status=target)
             except Exception:
                 pass
     return target

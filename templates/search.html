@@ -13,53 +13,127 @@
     <button class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
   </form>
 
-  <div class="grid md:grid-cols-3 gap-4">
-    <div>
-      <h3 class="font-semibold">Wastes</h3>
-      <table class="w-full text-sm mt-2">
-        <thead><tr class="text-left border-b"><th>ID</th><th>Type</th><th>Weight</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for w in results.wastes %}
-            <tr class="border-b hover:bg-slate-50">
-              <td><a class="text-teal-700 underline" href="/waste/{{ w.waste_id }}">{{ w.waste_id }}</a></td>
-              <td>{{ w.type }}</td>
-              <td>{{ '%.2f'|format(w.weight) }}</td>
-              <td>{{ w.status or '-' }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <div>
-      <h3 class="font-semibold">Transports</h3>
-      <table class="w-full text-sm mt-2">
-        <thead><tr class="text-left border-b"><th>ID</th><th>By</th><th>Plate</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for t in results.transports %}
-            <tr class="border-b hover:bg-slate-50">
-              <td><a class="text-teal-700 underline" href="/transport/{{ t.transport_id }}">{{ t.transport_id }}</a></td>
-              <td>{{ t.by or '-' }}</td>
-              <td>{{ t.plate or '-' }}</td>
-              <td>{{ t.status or '-' }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <div>
-      <h3 class="font-semibold">Hospitals</h3>
-      <table class="w-full text-sm mt-2">
-        <thead><tr class="text-left border-b"><th>ID</th><th>Name</th></tr></thead>
-        <tbody>
-          {% for h in results.hospitals %}
-            <tr class="border-b hover:bg-slate-50">
-              <td>{{ h.hospital_id }}</td>
-              <td>{{ h.name }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <h3 class="font-semibold">Search Results</h3>
+
+  <!-- Desktop Table -->
+  <div class="hidden md:block">
+    <table class="w-full text-sm mt-2 table-fixed">
+      <thead>
+        <tr class="text-left border-b">
+          <th class="w-1/5">Waste ID</th>
+          <th class="w-1/5">Type</th>
+          <th class="w-1/5">Weight (kg)</th>
+          <th class="w-1/5">Hospital</th>
+          <th class="w-1/5">Transport</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+          <tr class="border-b hover:bg-slate-50">
+            <!-- Waste Data -->
+            <td class="truncate">
+              <a class="text-teal-700 underline" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
+              <br>
+              <span class="text-slate-500">{{ r.waste.status or '-' }}</span>
+            </td>
+            <td class="truncate">{{ r.waste.type }}</td>
+            <td class="truncate">{{ '%.2f'|format(r.waste.weight) }}</td>
+            
+            <!-- Hospital Data -->
+            <td class="truncate">
+              {% if r.hospital %}
+                {{ r.hospital.name }} ({{ r.hospital.id }})
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <!-- Transport Data -->
+            <td class="truncate">
+              {% if r.transport %}
+                <a class="text-teal-700 underline" href="/transport/{{ r.transport.id }}">{{ r.transport.id }}</a>
+                <br>
+                <span class="text-slate-500">{{ r.transport.plate or '-' }} | {{ r.transport.status or '-' }}</span>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center py-4 text-slate-500">No results found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+
+  <!-- Mobile View: A list of cards -->
+  <div class="block md:hidden mt-2 space-y-4">
+    {% for r in results %}
+      <div class="border rounded-lg p-4 space-y-2">
+        <!-- Waste -->
+        <div>
+          <div class="flex justify-between">
+            <span class="font-bold">Waste ID:</span>
+            <a class="text-teal-700 underline truncate" href="/waste/{{ r.waste.id }}">{{ r.waste.id }}</a>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold">Status:</span>
+            <span class="truncate">{{ r.waste.status or '-' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold">Type:</span>
+            <span class="truncate">{{ r.waste.type }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-bold">Weight:</span>
+            <span class="truncate">{{ '%.2f'|format(r.waste.weight) }} kg</span>
+          </div>
+        </div>
+        
+        <hr>
+
+        <!-- Hospital -->
+        <div class="flex justify-between">
+          <span class="font-bold">Hospital:</span>
+          <span class="truncate">
+            {% if r.hospital %}
+              {{ r.hospital.name }} ({{ r.hospital.id }})
+            {% else %}
+              -
+            {% endif %}
+          </span>
+        </div>
+
+        <hr>
+
+        <!-- Transport -->
+        <div>
+          <div class="flex justify-between">
+            <span class="font-bold">Transport:</span>
+            {% if r.transport %}
+              <a class="text-teal-700 underline truncate" href="/transport/{{ r.transport.id }}">{{ r.transport.id }}</a>
+            {% else %}
+              <span>-</span>
+            {% endif %}
+          </div>
+          {% if r.transport %}
+            <div class="flex justify-between">
+              <span class="font-bold">Plate:</span>
+              <span class="truncate">{{ r.transport.plate or '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-bold">Status:</span>
+              <span class="truncate">{{ r.transport.status or '-' }}</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="text-center py-4 text-slate-500">No results found.</div>
+    {% endfor %}
+  </div>
+
 </div>
 {% endblock %}

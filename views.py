@@ -42,79 +42,70 @@ def index():
 def search():
     q = (request.args.get("q") or "").strip()
     stype = request.args.get("type") or "all"
-    results = {"wastes": [], "transports": [], "hospitals": []}
+    result_rows = []
+
     if not q:
-        return render_template("search.html", q=q, results=results)
+        return render_template("search.html", q=q, results=[])
 
-    # Sets to hold unique IDs to query at the end
-    waste_ids_to_show = set()
-    transport_ids_to_show = set()
-    hospital_ids_to_show = set()
+    # We need to find all relevant waste packages first.
+    waste_ids_to_query = set()
 
-    # --- Search based on query type ---
     if stype in ("all", "waste"):
         ws = WastePackage.query.filter(WastePackage.waste_id.like(f"%{q}%")).all()
         for w in ws:
-            waste_ids_to_show.add(w.waste_id)
-            hospital_ids_to_show.add(w.hospital_id)
-
-    if stype in ("all", "transport"):
-        ts = Transport.query.filter(Transport.transport_id.like(f"%{q}%")).all()
-        for t in ts:
-            transport_ids_to_show.add(t.transport_id)
-            # Find related hospitals
-            wastes_on_transport = (
-                db.session.query(WastePackage.hospital_id)
-                .join(WasteOnTransport, WasteOnTransport.waste_id == WastePackage.waste_id)
-                .filter(WasteOnTransport.transport_id == t.transport_id)
-                .distinct().all()
-            )
-            for hosp_id, in wastes_on_transport:
-                hospital_ids_to_show.add(hosp_id)
+            waste_ids_to_query.add(w.waste_id)
 
     if stype in ("all", "hospital"):
+        # Find hospitals, then find their wastes
         hs = Hospital.query.filter(
             (Hospital.hospital_id.like(f"%{q}%")) | (Hospital.name.like(f"%{q}%"))
         ).all()
-        for h in hs:
-            hospital_ids_to_show.add(h.hospital_id)
-            # Find related wastes
-            wastes_in_hospital = WastePackage.query.filter_by(hospital_id=h.hospital_id).all()
-            for w in wastes_in_hospital:
-                waste_ids_to_show.add(w.waste_id)
+        h_ids = {h.hospital_id for h in hs}
+        wastes_in_hospitals = WastePackage.query.filter(WastePackage.hospital_id.in_(list(h_ids))).all()
+        for w in wastes_in_hospitals:
+            waste_ids_to_query.add(w.waste_id)
 
-    # --- Build final results from the collected IDs ---
-    if waste_ids_to_show:
-        wastes = WastePackage.query.filter(WastePackage.waste_id.in_(list(waste_ids_to_show))).all()
-        results["wastes"] = [
-            {
-                "waste_id": w.waste_id,
-                "type": w.waste_type,
-                "weight": float(w.weight_kg),
-                "status": latest_status("waste", w.waste_id),
-            }
-            for w in wastes
-        ]
+    if stype in ("all", "transport"):
+        # Find transports, then find their wastes
+        ts = Transport.query.filter(Transport.transport_id.like(f"%{q}%")).all()
+        t_ids = {t.transport_id for t in ts}
+        wastes_on_transports = WasteOnTransport.query.filter(WasteOnTransport.transport_id.in_(list(t_ids))).all()
+        for wot in wastes_on_transports:
+            waste_ids_to_query.add(wot.waste_id)
 
-    if transport_ids_to_show:
-        transports = Transport.query.filter(Transport.transport_id.in_(list(transport_ids_to_show))).all()
-        results["transports"] = [
-            {
-                "transport_id": t.transport_id,
-                "by": t.transport_by,
-                "plate": t.vehicle_plate,
-                "status": latest_status("transport", t.transport_id),
-            }
-            for t in transports
-        ]
+    # Now we have a set of all relevant waste IDs. Let's build the rows.
+    if waste_ids_to_query:
+        wastes = WastePackage.query.filter(WastePackage.waste_id.in_(list(waste_ids_to_query))).all()
+        for w in wastes:
+            # For each waste, find its hospital and transport
+            hospital = Hospital.query.get(w.hospital_id)
+            transport = (
+                db.session.query(Transport)
+                .join(WasteOnTransport, WasteOnTransport.transport_id == Transport.transport_id)
+                .filter(WasteOnTransport.waste_id == w.waste_id)
+                .first()
+            )
+            
+            result_rows.append({
+                "waste": {
+                    "id": w.waste_id,
+                    "type": w.waste_type,
+                    "weight": float(w.weight_kg),
+                    "status": latest_status("waste", w.waste_id)
+                },
+                "hospital": {
+                    "id": hospital.hospital_id,
+                    "name": hospital.name
+                } if hospital else None,
+                "transport": {
+                    "id": transport.transport_id,
+                    "by": transport.transport_by,
+                    "plate": transport.vehicle_plate,
+                    "status": latest_status("transport", transport.transport_id)
+                } if transport else None
+            })
 
-    if hospital_ids_to_show:
-        hospitals = Hospital.query.filter(Hospital.hospital_id.in_(list(hospital_ids_to_show))).all()
-        results["hospitals"] = [
-            {"hospital_id": h.hospital_id, "name": h.name} for h in hospitals
-        ]
-
-    return render_template("search.html", q=q, results=results)
+    return render_template("search.html", q=q, results=result_rows)
 
 
 @bp.route("/waste/<waste_id>")
