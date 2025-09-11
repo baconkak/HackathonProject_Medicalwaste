@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card mt-4">
+  <h3 class="font-semibold mb-2">Ask OpenAI</h3>
+  <div class="flex gap-2 mb-2">
+    <input type="text" id="gptQuestion" class="border rounded p-1 w-full" placeholder="Ask a question...">
+    <button class="btn btn-primary" onclick="askGPT()">Send</button>
+  </div>
+  <div
+    id="gptResponse"
+    class="p-2 border rounded bg-gray-50 min-h-[50px]"
+  ></div>
+  <div id="gptLoading" class="hidden text-sm text-slate-500 mt-2">
+    Loading...
+  </div>
+  <div id="gptError" class="hidden text-sm text-rose-600 mt-2"></div>
+</div>
+
+<script>
+  async function askGPT() {
+    const responseDiv = document.getElementById('gptResponse');
+    const loadingDiv = document.getElementById('gptLoading');
+    const errorDiv = document.getElementById('gptError');
+    const questionInput = document.getElementById('gptQuestion');
+    const question = questionInput.value;
+
+    if (!question) {
+      errorDiv.textContent = 'Please enter a question.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+
+    // Clear previous messages and show loading
+    responseDiv.textContent = '';
+    errorDiv.textContent = '';
+    errorDiv.classList.add('hidden');
+    loadingDiv.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/ask-gpt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question: question }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        responseDiv.textContent = data.response;
+      } else {
+        errorDiv.textContent = data.error || 'An unknown error occurred.';
+        errorDiv.classList.remove('hidden');
+      }
+    } catch (error) {
+      errorDiv.textContent = 'Failed to connect to the server.';
+      errorDiv.classList.remove('hidden');
+      console.error('Error:', error);
+    } finally {
+      loadingDiv.classList.add('hidden');
+    }
+  }
+</script>
+{% endblock %}

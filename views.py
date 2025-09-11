@@ -255,6 +255,12 @@ def dashboard():
             > 0
         ):
             completed += 1
+    
+    # Sort by_type by value
+    sorted_by_type = sorted(by_type.items(), key=lambda item: item[1], reverse=True)
+    by_type_labels = [item[0] for item in sorted_by_type]
+    by_type_data = [item[1] for item in sorted_by_type]
+
 
     percent_completed = round(100 * completed / max(total, 1), 1)
 
@@ -276,6 +282,7 @@ def dashboard():
 
     # Heatmap generation
     heatmap_image_path = None
+    cumulative_waste_image_path = None
     if wastes:
         df_heatmap = pd.DataFrame([
             {
@@ -292,14 +299,27 @@ def dashboard():
 
             day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-            # Save the plot to a file
+            # Cumulative Waste Plot
+            df_cumulative = df_heatmap.sort_values('collected_time')
+            df_cumulative['cumulative_weight'] = df_cumulative['weight_kg'].cumsum()
+
+            plt.figure(figsize=(10, 6))
+            plt.plot(df_cumulative['collected_time'], df_cumulative['cumulative_weight'])
+            plt.xlabel('Date')
+            plt.ylabel('Cumulative Waste (kg)')
+            plt.title('Cumulative Waste Over Time')
+            plt.grid(True)
+            plt.tight_layout()
+
             static_folder = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), "static"
             )
-            cumulative_waste_image_path = os.path.join(
+            cumulative_waste_image_path_file = os.path.join(
                 static_folder, "cumulative_waste.png"
             )
-            plt.savefig(cumulative_waste_image_path)
+            plt.savefig(cumulative_waste_image_path_file)
+            plt.close()
+            cumulative_waste_image_path = url_for('static', filename='cumulative_waste.png')
 
             time_category_order = ['Night', 'Morning', 'Afternoon', 'Evening'] # Order for Y-axis
 
@@ -393,13 +413,15 @@ def dashboard():
         dt_from=dt_from,
         dt_to=dt_to,
         total=total,
-        by_type=by_type,
+        by_type_labels=by_type_labels,
+        by_type_data=by_type_data,
         percent_completed=percent_completed,
         ts=ts,
         latest=latest,
         incidents=incidents,
         hospital_name=hospital_name,
         heatmap_image_path=heatmap_image_path,
+        cumulative_waste_image_path=cumulative_waste_image_path,
     )
 
 
@@ -565,6 +587,12 @@ def export_pdf():
         as_attachment=True,
         download_name="medwaste_report.pdf",
     )
+
+
+@bp.route("/help")
+@login_required
+def help():
+    return render_template("help.html")
 
 
 @bp.route("/status/bulk_update", methods=["POST"])

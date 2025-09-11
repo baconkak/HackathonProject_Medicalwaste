@@ -44,8 +44,8 @@
   <div class="card">
     <div class="text-slate-600 text-sm">By Type</div>
     <ul class="text-sm mt-1">
-      {% for k,v in by_type.items() %}
-      <li class="flex justify-between"><span>{{ k }}:</span> <b>{{ v }}</b></li>
+      {% for i in range(by_type_labels|length) %}
+      <li class="flex justify-between"><span>{{ by_type_labels[i] }}:</span> <b>{{ by_type_data[i] }}</b></li>
       {% endfor %}
     </ul>
   </div>
@@ -87,7 +87,11 @@
 
 <div class="card mt-4">
   <h3 class="font-semibold mb-2">Cumulative Waste Graph</h3>
+  {% if cumulative_waste_image_path %}
   <img src="{{ cumulative_waste_image_path }}" alt="Cumulative Waste Graph" class="w-full h-auto" />
+  {% else %}
+  <p>No cumulative waste data available.</p>
+  {% endif %}
 </div>
 
 <div class="card mt-4" id="gpt-prediction-section">
@@ -133,7 +137,8 @@
 
 <script>
   const ts = {{ ts|tojson }};
-  const byType = {{ by_type|tojson }};
+  const byTypeLabels = {{ by_type_labels|tojson }};
+  const byTypeData = {{ by_type_data|tojson }};
 
   new Chart(document.getElementById('lineChart'), {
     type: 'line',
@@ -146,8 +151,8 @@
   new Chart(document.getElementById('pieChart'), {
     type: 'pie',
     data: {
-      labels: Object.keys(byType),
-      datasets: [{ data: Object.values(byType) }]
+      labels: byTypeLabels,
+      datasets: [{ data: byTypeData }]
     }
   });
 
