@@ -1,5 +1,9 @@
 {% extends 'base.html' %} 
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="flex flex-wrap gap-3 items-end mb-4">
   <h2 class="text-lg font-semibold">
@@ -26,11 +30,22 @@
 
 <div class="grid md:grid-cols-4 gap-4">
   <div class="card">
-    <div class="text-slate-600 text-sm">Total Bags</div>
+    <div class="flex items-center">
+      <i data-feather="box" class="mr-2 text-emerald-600"></i>
+      <div class="text-slate-600 text-sm">Total Bags</div>
+    </div>
     <div class="text-3xl font-bold">{{ total }}</div>
+    <div class="flex items-center mt-2">
+      <i data-feather="bar-chart-2" class="mr-2 text-emerald-600"></i>
+      <div class="text-slate-600 text-sm">Total Weight (kg)</div>
+    </div>
+    <div class="text-3xl font-bold">{{ "%.2f"|format(total_weight) }}</div>
   </div>
   <div class="card">
-    <div class="text-slate-600 text-sm">Completed %</div>
+    <div class="flex items-center">
+      <i data-feather="check-circle" class="mr-2 text-emerald-600"></i>
+      <div class="text-slate-600 text-sm">Completed %</div>
+    </div>
     <div class="text-3xl font-bold text-emerald-600 mb-2">
       {{ percent_completed }}%
     </div>
@@ -69,6 +84,8 @@
   <div class="card">
     <h3 class="font-semibold mb-2">Waste per day</h3>
     <canvas id="lineChart"></canvas>
+    <h3 class="font-semibold mb-2">Waste by Department (kg)</h3>
+    <canvas id="deptBarChart"></canvas>
   </div>
   <div class="card">
     <h3 class="font-semibold mb-2">Type distribution</h3>
@@ -139,6 +156,8 @@
   const ts = {{ ts|tojson }};
   const byTypeLabels = {{ by_type_labels|tojson }};
   const byTypeData = {{ by_type_data|tojson }};
+  const byDeptLabels = {{ by_dept_labels|tojson }};
+  const byDeptData = {{ by_dept_data|tojson }};
 
   new Chart(document.getElementById('lineChart'), {
     type: 'line',
@@ -153,6 +172,14 @@
     data: {
       labels: byTypeLabels,
       datasets: [{ data: byTypeData }]
+    }
+  });
+
+  new Chart(document.getElementById('deptBarChart'), {
+    type: 'bar',
+    data: {
+      labels: byDeptLabels,
+      datasets: [{ label: 'Waste (kg)', data: byDeptData }]
     }
   });
 
@@ -194,5 +221,8 @@
       loadingDiv.classList.add('hidden');
     }
   }
+</script>
+<script>
+  feather.replace()
 </script>
 {% endblock %}

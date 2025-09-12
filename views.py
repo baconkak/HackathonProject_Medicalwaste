@@ -5,9 +5,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 from reportlab.pdfgen import canvas
 from sqlalchemy import func
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import logging
 
 def get_time_category(hour):
     if 6 <= hour < 12:
@@ -244,6 +247,7 @@ def dashboard():
 
     # KPIs
     total = len(wastes)
+    total_weight = sum([w.weight_kg for w in wastes])
     by_type = {}
     completed = 0
     for w in wastes:
@@ -274,11 +278,42 @@ def dashboard():
             for w in wastes
         ]
     )
-    ts = (
-        df.groupby("day")["count"].sum().reset_index().to_dict(orient="records")
-        if not df.empty
-        else []
-    )
+    if not df.empty:
+        df["day"] = pd.to_datetime(df["day"])
+        ts = (
+            df.groupby(df["day"].dt.date)["count"]
+            .sum()
+            .reset_index()
+            .rename(columns={"day": "day"})
+        )
+        ts["day"] = ts["day"].astype(str)
+        ts = ts.to_dict(orient="records")
+    else:
+        ts = []
+
+    # Department waste
+    by_dept_labels = []
+    by_dept_data = []
+    try:
+        by_dept = (
+            db.session.query(
+                Department.name, func.sum(WastePackage.weight_kg).label("total_weight")
+            )
+            .join(WastePackage, WastePackage.dept_id == Department.dept_id)
+            .filter(
+                WastePackage.collected_time >= dt_from,
+                WastePackage.collected_time <= dt_to,
+            )
+            .group_by(Department.name)
+            .order_by("total_weight")
+            .all()
+        )
+        by_dept_labels = [d[0] for d in by_dept]
+        by_dept_data = [float(d[1]) for d in by_dept]
+        logging.info(f"by_dept_labels: {by_dept_labels}")
+        logging.info(f"by_dept_data: {by_dept_data}")
+    except Exception as e:
+        logging.error(f"Error querying department waste: {e}")
 
     # Heatmap generation
     heatmap_image_path = None
@@ -408,21 +443,24 @@ def dashboard():
         if hospital:
             hospital_name = hospital.name
 
-        return render_template(
-        "dashboard.html",
-        dt_from=dt_from,
-        dt_to=dt_to,
-        total=total,
-        by_type_labels=by_type_labels,
-        by_type_data=by_type_data,
-        percent_completed=percent_completed,
-        ts=ts,
-        latest=latest,
-        incidents=incidents,
-        hospital_name=hospital_name,
-        heatmap_image_path=heatmap_image_path,
-        cumulative_waste_image_path=cumulative_waste_image_path,
-    )
+    return render_template(
+    "dashboard.html",
+    dt_from=dt_from,
+    dt_to=dt_to,
+    total=total,
+    total_weight=total_weight,
+    by_type_labels=by_type_labels,
+    by_type_data=by_type_data,
+    percent_completed=percent_completed,
+    ts=ts,
+    latest=latest,
+    incidents=incidents,
+    hospital_name=hospital_name,
+    heatmap_image_path=heatmap_image_path,
+    cumulative_waste_image_path=cumulative_waste_image_path,
+    by_dept_labels=by_dept_labels,
+    by_dept_data=by_dept_data,
+)
 
 
 @bp.route("/status/scan", methods=["GET", "POST"])

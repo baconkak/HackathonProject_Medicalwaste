@@ -42,62 +42,73 @@ def create_app():
             return jsonify({"error": "No question provided"}), 400
 
         try:
-            # --- Data Collection for GPT Prompt ---
-            now = datetime.utcnow()
-            dt_from = now - timedelta(days=30)
+            context = data.get("context")
 
-            wastes = WastePackage.query.filter(
-                (WastePackage.collected_time == None)
-                | (WastePackage.collected_time >= dt_from)
-            ).all()
-
-            total_wastes = len(wastes)
-            by_type = {}
-            for w in wastes:
-                by_type[w.waste_type] = by_type.get(w.waste_type, 0) + 1
-
-            waste_summary = []
-            for w in wastes[:10]:  # limit เหลือ 10 เพื่อลด token
-                hospital = Hospital.query.get(w.hospital_id)
-                current_status_event = (
-                    StatusEvent.query.filter_by(ref_type="waste", ref_id=w.waste_id)
-                    .order_by(StatusEvent.at.desc())
-                    .first()
+            if context == "help":
+                system_msg = (
+                    "คุณคือผู้ช่วยตอบคำถามเกี่ยวกับการใช้งานระบบ MedWaste Tracker "
+                    "ตอบเป็นภาษาไทย มืออาชีพ กระชับ ให้ข้อมูลครบถ้วนและตรงประเด็น "
+                    "เน้นการให้คำแนะนำการใช้งานหรืออธิบายคุณสมบัติของระบบ "
+                    "ตอบไม่เกิน 150 คำ."
                 )
-                current_status = (
-                    current_status_event.status if current_status_event else "Unknown"
+                user_msg = f"คำถาม: {user_question}"
+            else:
+                # --- Data Collection for GPT Prompt ---
+                now = datetime.utcnow()
+                dt_from = now - timedelta(days=30)
+
+                wastes = WastePackage.query.filter(
+                    (WastePackage.collected_time == None)
+                    | (WastePackage.collected_time >= dt_from)
+                ).all()
+
+                total_wastes = len(wastes)
+                by_type = {}
+                for w in wastes:
+                    by_type[w.waste_type] = by_type.get(w.waste_type, 0) + 1
+
+                waste_summary = []
+                for w in wastes[:10]:  # limit เหลือ 10 เพื่อลด token
+                    hospital = Hospital.query.get(w.hospital_id)
+                    current_status_event = (
+                        StatusEvent.query.filter_by(ref_type="waste", ref_id=w.waste_id)
+                        .order_by(StatusEvent.at.desc())
+                        .first()
+                    )
+                    current_status = (
+                        current_status_event.status if current_status_event else "Unknown"
+                    )
+                    waste_summary.append(
+                        f"ID:{w.waste_id}, Type:{w.waste_type}, "
+                        f"Weight:{w.weight_kg}kg, "
+                        f"Hospital:{hospital.name if hospital else 'N/A'}, "
+                        f"Status:{current_status}"
+                    )
+
+                incidents_exist = (
+                    StatusEvent.query.filter(StatusEvent.status.like("%incident%")).count()
+                    > 0
                 )
-                waste_summary.append(
-                    f"ID:{w.waste_id}, Type:{w.waste_type}, "
-                    f"Weight:{w.weight_kg}kg, "
-                    f"Hospital:{hospital.name if hospital else 'N/A'}, "
-                    f"Status:{current_status}"
+
+                # --- Build messages for GPT ---
+                system_msg = (
+                    "คุณคือผู้ช่วยวิเคราะห์การจัดการขยะการแพทย์ "
+                    "ตอบเป็นภาษาไทย มืออาชีพ กระชับ ให้ข้อมูลครบ: "
+                    "1) ความเสี่ยง/ความผิดปกติ 2) แนวโน้ม 3) คำแนะนำปฏิบัติและรอบที่ควรเก็บ "
+                    "อธิบายเหตุผลสั้นๆ ก่อนสรุป ตอบไม่เกิน 150 คำ."
                 )
 
-            incidents_exist = (
-                StatusEvent.query.filter(StatusEvent.status.like("%incident%")).count()
-                > 0
-            )
-
-            # --- Build messages for GPT ---
-            system_msg = (
-                "คุณคือผู้ช่วยวิเคราะห์การจัดการขยะการแพทย์ "
-                "ตอบเป็นภาษาไทย มืออาชีพ กระชับ ให้ข้อมูลครบ: "
-                "1) ความเสี่ยง/ความผิดปกติ 2) แนวโน้ม 3) คำแนะนำปฏิบัติและรอบที่ควรเก็บ "
-                "อธิบายเหตุผลสั้นๆ ก่อนสรุป ตอบไม่เกิน 150 คำ."
-            )
-
-            user_msg = "\n".join(
-                [
-                    f"ช่วงเวลา: 30 วันล่าสุด",
-                    f"รวมแพ็กเกจ: {total_wastes}",
-                    f"ประเภท: {by_type}",
-                    "ตัวอย่างแพ็กเกจ (10 แรก):",
-                    "\n".join(waste_summary) if waste_summary else "ไม่มีข้อมูล",
-                    f"มี incident หรือไม่: {'Yes' if incidents_exist else 'No'}",
-                    f"คำถาม: {user_question}",
-                ]
-            )
+                user_msg = "\n".join(
+                    [
+                        f"ช่วงเวลา: 30 วันล่าสุด",
+                        f"รวมแพ็กเกจ: {total_wastes}",
+                        f"ประเภท: {by_type}",
+                        "ตัวอย่างแพ็กเกจ (10 แรก):",
+                        "\n".join(waste_summary) if waste_summary else "ไม่มีข้อมูล",
+                        f"มี incident หรือไม่: {'Yes' if incidents_exist else 'No'}",
+                        f"คำถาม: {user_question}",
+                    ]
+                )
 
             completion = client.chat.completions.create(
                 model="gpt-4o-mini",

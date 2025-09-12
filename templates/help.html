@@ -4,7 +4,7 @@
   <h3 class="font-semibold mb-2">Ask OpenAI</h3>
   <div class="flex gap-2 mb-2">
     <input type="text" id="gptQuestion" class="border rounded p-1 w-full" placeholder="Ask a question...">
-    <button class="btn btn-primary" onclick="askGPT()">Send</button>
+    <button class="btn btn-primary" onclick="askHelpGPT()">Send</button>
   </div>
   <div
     id="gptResponse"
@@ -17,12 +17,14 @@
 </div>
 
 <script>
-  async function askGPT() {
+  async function askHelpGPT() {
     const responseDiv = document.getElementById('gptResponse');
     const loadingDiv = document.getElementById('gptLoading');
     const errorDiv = document.getElementById('gptError');
     const questionInput = document.getElementById('gptQuestion');
     const question = questionInput.value;
+
+    
 
     if (!question) {
       errorDiv.textContent = 'Please enter a question.';
@@ -42,7 +44,7 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question: question }),
+        body: JSON.stringify({ question: question, context: 'help' }),
       });
 
       const data = await response.json();

@@ -1,16 +1,19 @@
 :root {
     --teal-600: #0D9488;
     --teal-100: #CCFBF1;
-    --emerald-500: #10B981;
+    --emerald-600: #059669;
+    --emerald-100: #D1FAE5;
     --amber-500: #F59E0B;
     --rose-600: #E11D48;
     --slate-900: #0F172A;
-    --slate-800: #1e293b;
+    --slate-800: #1E293B;
     --slate-700: #334155;
-    --slate-400: #94a3b8;
-    --slate-300: #cbd5e1;
-    --slate-200: #e2e8f0;
+    --slate-500: #64748B;
+    --slate-400: #94A3B8;
+    --slate-300: #CBD5E1;
+    --slate-200: #E2E8F0;
     --slate-100: #F1F5F9;
+    --white: #FFFFFF;
 }
 
 .leaflet-container {
@@ -20,14 +23,15 @@
 body {
     background-color: var(--slate-100);
     color: var(--slate-700);
-    font-family: sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 .card {
-    background-color: white;
+    background-color: var(--white);
     padding: 1.5rem;
     border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    border: 1px solid var(--slate-200);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
     transition: all 0.2s ease-in-out;
 }
 
@@ -42,7 +46,7 @@ body {
 }
 
 .table th, .table td {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--slate-200);
 }
@@ -50,6 +54,9 @@ body {
 .table th {
     font-weight: 600;
     background-color: var(--slate-100);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .table tbody tr:hover {
@@ -57,13 +64,14 @@ body {
 }
 
 .btn {
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 0.5rem;
     font-weight: 600;
     color: white;
     transition: background-color 0.2s ease-in-out;
     border: none;
     cursor: pointer;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 .btn-primary {
