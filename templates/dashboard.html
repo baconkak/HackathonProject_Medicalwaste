@@ -1,8 +1,10 @@
-{% extends 'base.html' %} 
-{% block content %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% extends 'base.html' %} {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="flex flex-wrap gap-3 items-end mb-4">
@@ -60,7 +62,9 @@
     <div class="text-slate-600 text-sm">By Type</div>
     <ul class="text-sm mt-1">
       {% for i in range(by_type_labels|length) %}
-      <li class="flex justify-between"><span>{{ by_type_labels[i] }}:</span> <b>{{ by_type_data[i] }}</b></li>
+      <li class="flex justify-between">
+        <span>{{ by_type_labels[i] }}:</span> <b>{{ by_type_data[i] }}</b>
+      </li>
       {% endfor %}
     </ul>
   </div>
@@ -96,7 +100,11 @@
 <div class="card mt-4">
   <h3 class="font-semibold mb-2">Waste Quantity Heatmap (kg)</h3>
   {% if heatmap_image_path %}
-  <img src="{{ heatmap_image_path }}" alt="Waste Quantity Heatmap" class="w-full h-auto" />
+  <img
+    src="{{ heatmap_image_path }}"
+    alt="Waste Quantity Heatmap"
+    class="w-full h-auto"
+  />
   {% else %}
   <p>No heatmap data available.</p>
   {% endif %}
@@ -105,14 +113,18 @@
 <div class="card mt-4">
   <h3 class="font-semibold mb-2">Cumulative Waste Graph</h3>
   {% if cumulative_waste_image_path %}
-  <img src="{{ cumulative_waste_image_path }}" alt="Cumulative Waste Graph" class="w-full h-auto" />
+  <img
+    src="{{ cumulative_waste_image_path }}"
+    alt="Cumulative Waste Graph"
+    class="w-full h-auto"
+  />
   {% else %}
   <p>No cumulative waste data available.</p>
   {% endif %}
 </div>
 
 <div class="card mt-4" id="gpt-prediction-section">
-  <h3 class="font-semibold mb-2">Ask OpenAI</h3>
+  <h3 class="font-semibold mb-2">Analyze with AI</h3>
   <div class="flex gap-2 mb-2">
     <button class="btn btn-primary" onclick="askGPT()">Analyze Data</button>
   </div>
@@ -223,6 +235,6 @@
   }
 </script>
 <script>
-  feather.replace()
+  feather.replace();
 </script>
 {% endblock %}
